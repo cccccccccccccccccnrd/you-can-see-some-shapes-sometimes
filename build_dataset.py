@@ -17,9 +17,11 @@ def build(data_dir):
     comments = []
     for post in root.iter('item'):
       for post_content in post.iter('{http://purl.org/rss/1.0/modules/content/}encoded'):
-        posts.append(post_content.text)
+        if type(post_content.text) is str:
+          posts.append(post_content.text)
       for comment_content in post.iter('{http://wordpress.org/export/1.2/}comment_content'):
-        comments.append(comment_content.text)
+        if type(comment_content.text) is str:
+          comments.append(comment_content.text)
     return posts, comments
   
   def clean(string):
