@@ -1,6 +1,8 @@
 log
 data
 dataset*.txt
+tsne.png
+tsne.json
 
 .DS_Store
 

@@ -53,7 +53,7 @@ def word2vec_basic(log_dir):
     return data
 
   vocabulary = read_data(filename)
-  print(vocabulary)
+  # print(vocabulary)
   print('Data size', len(vocabulary))
   # sys.exit()
 
@@ -207,7 +207,7 @@ def word2vec_basic(log_dir):
     saver = tf.train.Saver()
 
   # Step 5: Begin training.
-  num_steps = 100001
+  num_steps = 100 # 100001
 
   with tf.Session(graph=graph) as session:
     # Open a writer to write summaries.
@@ -282,6 +282,19 @@ def word2vec_basic(log_dir):
 
   writer.close()
 
+  def save_tsne(low_dim_embs, labels, filename):
+    import json
+    tsne = {}
+
+    for i, label in enumerate(labels):
+      x, y = low_dim_embs[i, :]
+      j = np.interp(x, [-30, 30], [0, 700])
+      k = np.interp(y, [-30, 30], [0, 700])
+      tsne[label] = [float(j), float(k)]
+
+    with open(filename, 'w', encoding='utf-8') as f:
+      json.dump(tsne, f, ensure_ascii=False, indent=2)
+    
   # Step 6: Visualize the embeddings.
 
   # pylint: disable=missing-docstring
@@ -299,7 +312,7 @@ def word2vec_basic(log_dir):
           textcoords='offset points',
           ha='right',
           va='bottom')
-
+    
     plt.savefig(filename)
 
   try:
@@ -312,8 +325,11 @@ def word2vec_basic(log_dir):
     plot_only = 500
     low_dim_embs = tsne.fit_transform(final_embeddings[:plot_only, :])
     labels = [reverse_dictionary[i] for i in xrange(plot_only)]
-    plot_with_labels(low_dim_embs, labels, os.path.join(gettempdir(),
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    plot_with_labels(low_dim_embs, labels, os.path.join(dir_path,
                                                         'tsne.png'))
+    save_tsne(low_dim_embs, labels, os.path.join(dir_path,
+                                                        'tsne.json'))
 
   except ImportError as ex:
     print('Please install sklearn, matplotlib, and scipy to show embeddings.')

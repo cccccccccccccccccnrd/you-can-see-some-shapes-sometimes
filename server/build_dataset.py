@@ -2,6 +2,8 @@ import os
 import sys
 import argparse
 import re
+import string
+import nltk
 
 import xml.etree.ElementTree as ET
 
@@ -24,15 +26,18 @@ def build(data_dir):
           comments.append(comment_content.text)
     return posts, comments
   
-  def clean(string):
+  def clean(text):
     # no_tags = re.compile('(<.*?>)|(\\n)|(\\t)|(&.*?;)|([^A-Za-z0-9 ])')
     first = re.compile('(<.*?>)|(&.*?;)|(\\n)|(\\t)|(http.*)')
-    second = re.compile('([^A-Za-z0-9 ])')
+    second = re.compile('([^A-Za-z0-9\x7f-\xff ])')
     third = re.compile(' {2,}')
-    cleaned = first.sub(' ', string)
-    cleaned = second.sub('', cleaned)
-    cleaned = third.sub(' ', cleaned)
-    return cleaned
+    text = first.sub('', text)
+    text = second.sub(' ', text)
+    text = third.sub(' ', text)
+
+    text = text.lower()
+    text = text.translate(string.punctuation)
+    return text
 
   def save(string):
     with open('dataset.txt', 'w+') as f:
