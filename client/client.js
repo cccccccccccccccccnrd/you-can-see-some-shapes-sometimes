@@ -24,64 +24,79 @@ function show (text) {
   word.innerText = `${ word.innerText } ${ text }`
 }
 
-function draw([x, y], label) {
+function draw ([x, y], label) {
   ctx.fillStyle = 'white'
   ctx.fillRect(x, y, 1, 1)
 }
 
-function fill (poses) { /* mach na anders */
-  const pose = poses[0]
-
-  const x = Math.floor(pose.keypoints[0].position.x)
-  const y = Math.floor(pose.keypoints[0].position.y)
+function getLabel (keypoint) {
+  const x = Math.floor(keypoint.position.x)
+  const y = Math.floor(keypoint.position.y)
 
   const area = ctx.getImageData(x, y, sizes.area, sizes.area).data
-  
+  ctx.fillRect(x, y, sizes.area, sizes.area)
+  let label
+
   area.forEach((value, index) => {
     if (index % 4 != 0) return
     if (value === 255) {
       const pos = ('0' + index / 4).slice(-2)
       const offset = (pos / sizes.area).toString().split('.').map(n => Number(n)) 
       if (!offset[1]) offset[1] = 0
-      const label = latent[`${ x + offset[1] },${ y + offset[0] }`]
-
-      console.log(x + offset[1], y + offset[0], label)
-      show(label)
+      label = latent[`${ x + offset[1] },${ y + offset[0] }`]
     }
   })
+
+  return label
 }
 
-const memory = {
-  timer: 0,
+function lstm (labels) {
+  console.log(labels)
+}
+
+const movement = {
   prev: null,
-  threshold: 2
+  moving: false,
+  memory: 0,
+  keypoints: []
 }
 
 function check (poses) {
-  const nose = poses[0]
-  const leftWrist = poses[9]
-  const rightWrist = poses[10]
+  const nose = poses[0].keypoints[0]
+  /* const leftWrist = poses[9]
+  const rightWrist = poses[10] */
 
-  if (memory.timer < memory.threshold) {
-    memory.timer++
+  const threshold = 10
+  const delay = 3
+  const diff = movement.prev ? Math.abs(movement.prev.position.x - nose.position.x) : 0
+
+  if (diff > threshold && movement.memory <= delay) {
+    movement.memory++
   } else {
-    memory.timer = 0;
-    memory.prev = nose
+    if (movement.memory <= delay) movement.memory = 0
+    movement.memory--
   }
 
-  console.log(memory.timer)
-  console.log(nose.keypoints[0].position.x)
+  if (movement.memory >= delay) {
+    movement.moving = true
+    console.log('moving')
+    movement.keypoints.push(nose)
+  } else if (movement.memory < 0) {
+    if (movement.moving) {
+      let labels = []
+      movement.keypoints.forEach((keypoint) => {
+        const label = getLabel(keypoint)
+        if (label) labels.push(label)
+      })
 
-  if (!memory.prev) return
-
-  const area = 20
-
-  if (memory.prev.keypoints[0].position.x + area < nose.keypoints[0].position.x ||
-    memory.prev.keypoints[0].position.x - area > nose.keypoints[0].position.x) {
-    console.log('moin')
+      if (labels.length > 0) lstm(labels)
+      movement.keypoints = []
+    }
+    movement.moving = false
   }
 
-  draw([nose.keypoints[0].position.x, nose.keypoints[0].position.y])
+  movement.prev = nose
+  /* draw([nose.position.x, nose.position.y]) */
 }
 
 async function estimate () {
