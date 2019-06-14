@@ -6,8 +6,7 @@ const ctx = canvas.getContext('2d')
 let network
 let latent = {}
 const sizes = {
-  canvas: 700,
-  area: 10
+  canvas: 700
 }
 
 canvas.width = sizes.canvas
@@ -29,36 +28,37 @@ function draw ([x, y], label) {
   ctx.fillRect(x, y, 1, 1)
 }
 
-function getLabel (keypoint) {
+function getLabels (keypoint) {
   const x = Math.floor(keypoint.position.x)
   const y = Math.floor(keypoint.position.y)
 
-  const area = ctx.getImageData(x, y, sizes.area, sizes.area).data
-  ctx.fillRect(x, y, sizes.area, sizes.area)
-  let label
+  const area = ctx.getImageData(x, y, 10, 10).data
+  /* ctx.fillRect(x, y, 10, 10) */
+  let labels = []
 
   area.forEach((value, index) => {
     if (index % 4 != 0) return
     if (value === 255) {
       const pos = ('0' + index / 4).slice(-2)
-      const offset = (pos / sizes.area).toString().split('.').map(n => Number(n)) 
+      const offset = (pos / 10).toString().split('.').map(n => Number(n)) 
       if (!offset[1]) offset[1] = 0
-      label = latent[`${ x + offset[1] },${ y + offset[0] }`]
+      labels.push(latent[`${ x + offset[1] },${ y + offset[0] }`])
     }
   })
 
-  return label
+  return labels
 }
 
 function lstm (labels) {
-  console.log(labels)
+  console.log('moin', labels)
 }
 
 const movement = {
   prev: null,
   moving: false,
   memory: 0,
-  keypoints: []
+  keypoints: [],
+  labels: []
 }
 
 function check (poses) {
@@ -79,18 +79,17 @@ function check (poses) {
 
   if (movement.memory >= delay) {
     movement.moving = true
-    console.log('moving')
     movement.keypoints.push(nose)
   } else if (movement.memory < 0) {
     if (movement.moving) {
-      let labels = []
       movement.keypoints.forEach((keypoint) => {
-        const label = getLabel(keypoint)
-        if (label) labels.push(label)
+        const localLabels = getLabels(keypoint)
+        movement.labels = movement.labels.concat(localLabels)
       })
 
-      if (labels.length > 0) lstm(labels)
+      if (movement.labels.length > 0) lstm(movement.labels)
       movement.keypoints = []
+      movement.labels = []
     }
     movement.moving = false
   }
