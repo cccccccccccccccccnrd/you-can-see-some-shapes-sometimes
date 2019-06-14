@@ -24,7 +24,7 @@ ctx.fillRect(0, 0, canvas.width, canvas.height)
 
 function show (text) {
   if (text === undefined || text === 'UNK') return
-  word.innerText = `${ word.innerText } ${ text }`
+  word.innerText = `${ text }`
 }
 
 function draw ([x, y], label) {
@@ -54,14 +54,20 @@ function getLabels (keypoint) {
 }
 
 function lstm (labels) {
-  rnn.generate({ seed: labels.join(' ') }, (err, results) => {
-    console.log(results)
+  const options = {
+    seed: labels.join(' '),
+    length: 40,
+    temperature: 0.5
+  }
+
+  rnn.generate(options, (err, results) => {
     const speech = new SpeechSynthesisUtterance(results.sample)
     window.speechSynthesis.speak(speech)
     show(results.sample)
+    console.log(results.sample)
   })
 
-  console.log('moin', labels)
+  console.log(labels)
 }
 
 const movement = {
