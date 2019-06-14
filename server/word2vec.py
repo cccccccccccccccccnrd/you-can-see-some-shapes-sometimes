@@ -35,7 +35,6 @@ from tensorflow.contrib.tensorboard.plugins import projector
 
 data_index = 0
 
-
 def word2vec_basic(log_dir):
   """Example of building, training and visualizing a word2vec model."""
   # Create the directory for TensorBoard variables if there is not.
@@ -53,12 +52,12 @@ def word2vec_basic(log_dir):
     return data
 
   vocabulary = read_data(filename)
-  # print(vocabulary)
+  print(vocabulary)
   print('Data size', len(vocabulary))
   # sys.exit()
 
   # Step 2: Build the dictionary and replace rare words with UNK token.
-  vocabulary_size = 10000
+  vocabulary_size = 100
 
   def build_dataset(words, n_words):
     """Process raw inputs into a dataset."""
@@ -126,8 +125,8 @@ def word2vec_basic(log_dir):
 
   # Step 4: Build and train a skip-gram model.
 
-  batch_size = 128
-  embedding_size = 128  # Dimension of the embedding vector.
+  batch_size = 64 # 128
+  embedding_size = 64  # Dimension of the embedding vector. 128
   skip_window = 1  # How many words to consider left and right.
   num_skips = 2  # How many times to reuse an input to generate a label.
   num_sampled = 64  # Number of negative examples to sample.
@@ -137,7 +136,7 @@ def word2vec_basic(log_dir):
   # construction are also the most frequent. These 3 variables are used only for
   # displaying model accuracy, they don't affect calculation.
   valid_size = 16  # Random set of words to evaluate similarity on.
-  valid_window = 100  # Only pick dev samples in the head of the distribution.
+  valid_window = 20  # Only pick dev samples in the head of the distribution. 100
   valid_examples = np.random.choice(valid_window, valid_size, replace=False)
 
   graph = tf.Graph()
@@ -207,7 +206,7 @@ def word2vec_basic(log_dir):
     saver = tf.train.Saver()
 
   # Step 5: Begin training.
-  num_steps = 100 # 100001
+  num_steps = 20001 # 100001
 
   with tf.Session(graph=graph) as session:
     # Open a writer to write summaries.
@@ -286,10 +285,18 @@ def word2vec_basic(log_dir):
     import json
     tsne = {}
 
+    xs = []
+    ys = []
+
     for i, label in enumerate(labels):
       x, y = low_dim_embs[i, :]
-      j = np.interp(x, [-30, 30], [0, 700])
-      k = np.interp(y, [-30, 30], [0, 700])
+      xs.append(x)
+      ys.append(y)
+
+    for i, label in enumerate(labels):
+      x, y = low_dim_embs[i, :]
+      j = np.interp(x, [min(xs), max(xs)], [0, 700])
+      k = np.interp(y, [min(ys), max(ys)], [0, 700])
       tsne[label] = [float(j), float(k)]
 
     with open(filename, 'w', encoding='utf-8') as f:
@@ -322,7 +329,7 @@ def word2vec_basic(log_dir):
 
     tsne = TSNE(
         perplexity=30, n_components=2, init='pca', n_iter=5000, method='exact')
-    plot_only = 500
+    plot_only = 100
     low_dim_embs = tsne.fit_transform(final_embeddings[:plot_only, :])
     labels = [reverse_dictionary[i] for i in xrange(plot_only)]
     dir_path = os.path.dirname(os.path.realpath(__file__))

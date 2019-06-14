@@ -20,7 +20,7 @@ ctx.fillStyle = 'black'
 ctx.fillRect(0, 0, canvas.width, canvas.height)
 
 function show (text) {
-  if (text === undefined) return
+  if (text === undefined || text === 'UNK') return
   word.innerText = `${ word.innerText } ${ text }`
 }
 
@@ -29,7 +29,7 @@ function draw([x, y], label) {
   ctx.fillRect(x, y, 1, 1)
 }
 
-function check (poses) {
+function fill (poses) { /* mach na anders */
   const pose = poses[0]
 
   const x = Math.floor(pose.keypoints[0].position.x)
@@ -49,6 +49,39 @@ function check (poses) {
       show(label)
     }
   })
+}
+
+const memory = {
+  timer: 0,
+  prev: null,
+  threshold: 2
+}
+
+function check (poses) {
+  const nose = poses[0]
+  const leftWrist = poses[9]
+  const rightWrist = poses[10]
+
+  if (memory.timer < memory.threshold) {
+    memory.timer++
+  } else {
+    memory.timer = 0;
+    memory.prev = nose
+  }
+
+  console.log(memory.timer)
+  console.log(nose.keypoints[0].position.x)
+
+  if (!memory.prev) return
+
+  const area = 20
+
+  if (memory.prev.keypoints[0].position.x + area < nose.keypoints[0].position.x ||
+    memory.prev.keypoints[0].position.x - area > nose.keypoints[0].position.x) {
+    console.log('moin')
+  }
+
+  draw([nose.keypoints[0].position.x, nose.keypoints[0].position.y])
 }
 
 async function estimate () {
