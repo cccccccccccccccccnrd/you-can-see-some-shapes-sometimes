@@ -3,6 +3,10 @@ const camera = document.getElementById('camera')
 const canvas = document.getElementById('canvas')
 const ctx = canvas.getContext('2d')
 
+const rnn = ml5.charRNN('models/eu-law/', () => {
+  console.log('lstm loaded')
+})
+
 let network
 let latent = {}
 const sizes = {
@@ -50,6 +54,13 @@ function getLabels (keypoint) {
 }
 
 function lstm (labels) {
+  rnn.generate({ seed: labels.join(' ') }, (err, results) => {
+    console.log(results)
+    const speech = new SpeechSynthesisUtterance(results.sample)
+    window.speechSynthesis.speak(speech)
+    show(results.sample)
+  })
+
   console.log('moin', labels)
 }
 
