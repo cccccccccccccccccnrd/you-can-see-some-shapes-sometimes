@@ -3,6 +3,10 @@ const camera = document.getElementById('camera')
 const canvas = document.getElementById('canvas')
 const ctx = canvas.getContext('2d')
 
+const poseNet = ml5.poseNet(camera, { detectionType: 'single' }, () => {
+  console.log('posenet loaded')
+})
+
 const rnn = ml5.charRNN('models/eu-law/', () => {
   console.log('lstm loaded')
 })
@@ -33,8 +37,8 @@ function draw ([x, y], label) {
 }
 
 function getLabels (keypoint) {
-  const x = Math.floor(keypoint.position.x)
-  const y = Math.floor(keypoint.position.y)
+  const x = Math.floor(keypoint.x)
+  const y = Math.floor(keypoint.y)
 
   const area = ctx.getImageData(x, y, 10, 10).data
   /* ctx.fillRect(x, y, 10, 10) */
@@ -79,13 +83,11 @@ const movement = {
 }
 
 function check (poses) {
-  const nose = poses[0].keypoints[0]
-  /* const leftWrist = poses[9]
-  const rightWrist = poses[10] */
+  const nose = poses[0].pose.nose
 
   const threshold = 10
   const delay = 3
-  const diff = movement.prev ? Math.abs(movement.prev.position.x - nose.position.x) : 0
+  const diff = movement.prev ? Math.abs(movement.prev.x - nose.x) : 0
 
   if (diff > threshold && movement.memory <= delay) {
     movement.memory++
@@ -112,30 +114,12 @@ function check (poses) {
   }
 
   movement.prev = nose
-  /* draw([nose.position.x, nose.position.y]) */
+  /* draw([nose.x, nose.y]) */
 }
 
-async function estimate () {
-  const poses = await network.estimatePoses(camera, {
-    flipHorizontal: false,
-    decodingMethod: 'single-person'
-  })
-
-  check(poses)
-
-  requestAnimationFrame(() => {
-    estimate()
-  })
-}
-
-function detect() {
-  posenet.load()
-    .then((net) => {
-      network = net
-      estimate()
-      console.log(latent)
-  })
-}
+poseNet.on('pose', function(results) {
+  if (results.length > 0) check(results)
+})
 
 function init() {
   fetch('tsne.json')
@@ -151,14 +135,13 @@ function init() {
     })
 
   navigator.mediaDevices.getUserMedia({ audio: false, video: { width: { ideal: canvas.width }, height: { ideal: canvas.height } } })
-  .then(stream => {
-    camera.srcObject = stream
-    camera.play()
-    detect()
-  })
-  .catch((err) => {
-    console.log(err)
-  })
+    .then(stream => {
+      camera.srcObject = stream
+      camera.play()
+    })
+    .catch((err) => {
+      console.log(err)
+    })
 }
 
 init()
